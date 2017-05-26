@@ -1,0 +1,34 @@
+sudo apt-get install lubuntu-desktop
+\\ for GUI installation on LTS version UBUntu
+enkins provides an Ubuntu repository for the installation packages and we will install Jenkins from this repository.
+Add Jenkins key and repository to the system with the command below.
+wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
+echo 'deb https://pkg.jenkins.io/debian-stable binary/' | tee -a /etc/apt/sources.list
+
+Update the repository and install Jenkins.
+apt-get update
+apt-get install jenkins
+
+When the installation is done, start Jenkins with this systemctl command.
+systemctl start jenkins
+
+Verify that Jenkins is running by checking the default port used by Jenkins (port 8080). I will check it with the netstat command below:
+netstat -plntu
+
+Jenkins is based on Java, so we need to install Java OpenJDK version 7 on the server. In this step, we will install Java 7 from a PPA repository which we will add first.
+
+ships without the python-software-properties package for managing PPA repositories, so we must install this package first. Install python-software-properties with apt command.
+apt-get install python-software-properties
+
+Next, add Java PPA repository to the server.
+add-apt-repository ppa:openjdk-r/ppa
+Just Press ENTER
+
+Update the Ubuntu repository and install the Java OpenJDK with apt command.
+apt-get update
+apt-get install openjdk-7-jdk
+
+Verify the installation by typing the command below:
+java -version
+
+more information-------https://www.howtoforge.com/tutorial/how-to-install-jenkins-with-apache-on-ubuntu-16-04/
