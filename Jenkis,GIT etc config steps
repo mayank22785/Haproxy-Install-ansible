@@ -1,0 +1,261 @@
+# Jenkins CI
+Instructions on how to setup a secured Jenkins CI.
+
+## Install Jenkins
+
+```
+$ wget -q -O - https://jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add -
+$ sudo sh -c 'echo deb http://pkg.jenkins-ci.org/debian binary/ > /etc/apt/sources.list$ .d/jenkins.list'
+$ sudo apt-get update
+$ sudo apt-get install jenkins
+$ sudo service jenkins start
+```
+
+## Install Git
+```
+$ sudo apt-get install git
+```
+
+## Update all plugins
+Once you can access your Jenkins console,  goto `Manage Jenkins -> Manage Plugins` from the home screen.
+
+Sometimes when you install, you will notice that the list of available plugins is empty. If that is the case, from `Advanced` tab on the `Manage Plugins` page, click on `Check now` (button available in the bottom right of the page) to forcefully check for new updates. Once that is done, you should see the list of plugins.
+
+In the `Updates` tab, check all and click `download and install after restart`. Once downloads are finished , check `Restart Jenkins when installation is complete and no jobs are running`.
+
+## Install plugins
+
+Open the `Available` tab and find the plugin entitled:
+
+- Git Plugin
+- Github plugin
+- Rake plugin
+- RVM plugin
+- Green balls
+
+Download and restart Jenkins.
+
+## Configure Git
+
+Login to your box and switch to the Jenkins user. The installation process doesn't create a password so you'll need to have root/sudo permissions to do this. Run the command:
+
+```
+$ sudo su - jenkins
+```
+
+The `-` specifies a login shell, and will switch you to jenkins' home directory (for me this was `/var/lib/jenkins`).
+
+Create a `.ssh` directory in the Jenkins home directory.
+
+```
+$ mkdir ~/.ssh
+```
+
+Create the public private key pair. The most important thing is not to set a password, otherwise the jenkins user will not be able to connect to the git repo in an automated way.
+
+```
+$ cd ~/.ssh
+$ ssh-keygen -t rsa -C "jenkins@CI"
+```
+
+Start the ssh-agent in the background and add the key:
+```
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_rsa
+```
+
+Display your newly creted public key:
+
+```
+$ cat id_rsa.pub
+
+```
+Copy the output and add it to your Git repo.
+
+Set a git user and email address:
+
+```
+$ git config --global user.email "cloud+jenkins@example.com"
+$ git config --global user.name "jenkins"
+```
+
+Connect to the Git repo. This is a one time step which will dismiss that 'Are you sure you want to connect' ssh message, again jenkins won't be able to deal with this. Just run:
+
+```
+$ ssh -T git@github.com
+```
+
+
+## Install Ruby & Rails
+
+Dependencies:
+```
+$ sudo apt-get install autoconf bison build-essential libssl-dev libyaml-dev libreadline6 libreadline6-dev zlib1g zlib1g-dev
+```
+
+RVM:
+```
+$ gpg --keyserver hkp://keys.gnupg.net --recv-keys D39DC0E3
+$ \curl -sSL https://get.rvm.io | bash -s stable --ruby
+$ source /var/lib/jenkins/.rvm/scripts/rvm
+```
+
+Ruby (match the version of the project):
+```
+$ rvm install 2.1.4
+$ rvm use 2.1.4 --default
+```
+
+## Install PostgreSQL
+
+```
+$ sudo apt-get install postgresql postgresql-contrib postgresql-dev
+$ sudo -u postgres psql -c "ALTER USER postgres PASSWORD '';"
+$ sudo vim /etc/postgresql/9.3/main/pg_hba.conf
+```
+
+change:
+```
+local	all	postgres	peer
+```
+to:
+```
+# "local" is for Unix domain socket connections only
+local   all	all		trust
+# IPv4 local connections:
+host    all	all		127.0.0.1/32            trust
+# IPv6 local connections:
+host    all	all		::1/128                 trust
+```
+
+Reload conf:
+```
+$ psql -U postgres
+postgres=# select pg_reload_conf();
+
+$ sudo service postgresql restart
+
+```
+
+## Install other gem dependencies
+
+```
+$ sudo apt-get install libcurl3-dev libpq-dev
+```
+
+## Try project
+```
+$ cd ~/jobs/myproject/workspace
+$ bundle
+```
+
+## Create Job
+Next, configure our Rails project.
+
+From the home page, click on `New Item`, then select `Build a free-style software project` and click `OK`.
+
+Fill in the `Project Name` and `GitHub project` fields.
+
+Under `Source Code Management`, select `Git` and fill in the repo url. Add SSH keys here.
+
+Check the `Run the build in a RVM-managed environment` box, and enter in `Implementation`:
+
+`ruby-2.1.4@myproject`
+
+Poll SCM with a schedule of:
+
+```
+H/5 * * * *
+```
+
+Under `Add build step`, select `Execute shell`, and enter:
+
+```
+bundle install
+bundle exec rake db:setup
+bundle exec rake ci:all
+```
+
+Add the "Publish JUnit test result report" post-build step in the job configuration. Enter `spec/reports/*.xml` in the `Test report XMLs` field (adjust this to suit which tests you are running).
+
+
+## Configure security
+
+Navigate back to `Manage Jenkins` and select `Configure Global Security`. On this screen, check `Enable Security`, then `Jenkins' own user database` under `Security Realm`. After that, select `Project-based Matrix Authorization Strategy` under `Authorization`.
+
+From there, add `admin` and `localmonitor` users, checking all permissions for `admin` and only `Overall Read` and `JOB read` for`localmonitor`. Save the changes.
+
+Saving the security configuration will log you out of Jenkins. We've only created permissions at this point, so create the `admin` user account by clicking `Create an account`. Create the `localmonitor` user by navigating to `Manage Users` under `Manager Jenkins`.
+
+Don't forget to uncheck `Allow users to sign up` under `Configure Global Security`.
+
+
+## Add SSL with Nginx
+
+Install Nginx:
+```
+$ sudo apt-get install nginx
+```
+
+If you want to sign the server with self-generated credentials, create ssl keys and cert:
+
+```
+$ sudo mkdir ssl
+$ cd ssl
+$ sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/server.key -out /etc/nginx/ssl/server.crt
+```
+Otherwise get the `server.crt` and the `server.key` from your authority.
+
+
+Configure:
+
+```
+$ sudo rm /etc/nginx/sites-enabled/default
+$ sudo rm /etc/nginx/nginx.conf
+$ sudo vim /etc/nginx/nginx.conf
+
+
+user www-data;
+worker_processes 4;
+pid /run/nginx.pid;
+
+events {
+	worker_connections 768;
+	# multi_accept on;
+}
+
+http {
+	upstream jenkins {
+	  server 127.0.0.1:8080 fail_timeout=0;
+	}
+
+	server {
+	  listen 80;
+	  return 301 https://$host$request_uri;
+	}
+
+	server {
+	  listen 443;
+	  server_name jenkins;
+
+	  ssl on;
+	  ssl_certificate /etc/nginx/ssl/server.crt;
+	  ssl_certificate_key /etc/nginx/ssl/server.key;
+
+	  location / {
+	    proxy_set_header        Host $host;
+	    proxy_set_header        X-Real-IP $remote_addr;
+	    proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
+	    proxy_set_header        X-Forwarded-Proto $scheme;
+	    proxy_redirect http:// https://;
+	    proxy_pass              http://jenkins;
+	  }
+	}
+}
+```
+
+Save and restart nginx:
+
+```
+$ sudo service nginx restart
+```
