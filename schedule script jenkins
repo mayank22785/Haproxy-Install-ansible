@@ -1,0 +1,11 @@
+##
+## now recompile
+##
+
+ws_ant.sh -buildfile $BUILD_FILE -propertyfile $BUILD_PROPERTIES_FILE -Dbuild.dir=$WORKING_BUILD_DIR -Dwork.dir=$WORKING_WORK_DIR -Dlogs=$LOG_DIR -DisPatch=Y | tee $LOG_DIR/antrun.log
+if [ $? -ne 0 ]
+then
+        echo "Patch Build Failed. Aborting..."
+        rm -f $CORE_DIR/lock$1$2
+        exit -1
+fi
