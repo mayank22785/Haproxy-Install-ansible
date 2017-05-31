@@ -1,0 +1,55 @@
+# scrpt to run remote machine
+
+WMI Repair
+
+Go PS Tools location as cmd:
+
+C:\windows\Users\ps tools\psexec \\NIBC2500 -s -d cmd.exe /c "C:\WMI Repair.bat"
+
+
+psexec \\NIBC2500 -s -d cmd.exe /c "C:\WMI Repair.bat"
+
+
+
+
+SCCM CLIENT INSTALLATION:
+
+
+psexec  \\NIBLP222 -s -d cmd.exe /c "C:\SCCM Client Installation.cmd"
+
+
+
+
+
+
+Copy the batch file in c drive and below command line.
+
+
+Installed SCCM CLIENT VIA SCRIPT
+
+
+
+psexec  \\NIBLP222 -s -d cmd.exe /c "C:\SCCM Client Installation.cmd"
+
+
+Delete Temp file by remotely.
+
+
+psexec  \\NIBC1615 -s -d cmd.exe /c "C:\DeleteTempFiles.vbs"
+
+
+WMI Repair
+
+
+psexec \\NIBC2500 -s -d cmd.exe /c "C:\WMI Repair.bat"
+
+
+
+
+Uinstall microsoft scep client
+
+
+psexec \\NIBC1691 -s -d cmd.exe /c "C:\Uinstall microsoft scep client.bat"
+
+
+
