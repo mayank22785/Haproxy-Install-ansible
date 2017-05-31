@@ -1,0 +1,1480 @@
+<?xml version="1.0"?>
+
+-<project name="fdx-Project" default="build-all">
+
+<!-- MAKE SURE THE release is set before continuing -->
+
+
+<fail unless="release.home" message="release.home is not set. Please use fdxBuild.pl to manage the release."/>
+
+<fail unless="release" message="release is not set. Please use fdxBuild.pl to manage the release."/>
+
+<fail unless="build.home" message="build.home is not set. Please use fdxBuild.pl to manage the release."/>
+
+<fail unless="release.cvs.tag" message="release.cvs.tag is not set. Please use fdxBuild.pl to manage the release."/>
+
+<description>FDx Project Build</description>
+
+<property name="cvsroot" value=":pserver:admin:admin@10.11.100.122:/home/cvs/repository/fdsrc2008"/>
+
+<property name="release.cvs.command" value="checkout"/>
+
+<property name="wasHome.dir" location="/opt/IBM/WebSphere/AppServer"/>
+
+<property name="source.dir" value="${release.home}/source"/>
+
+<property name="build.dir" location="${release.home}/build"/>
+
+<property name="logs" location="${release.home}/logs"/>
+
+<property name="work.dir" location="${release.home}/work"/>
+
+<property name="external.lib.dir" location="${build.home}/external"/>
+
+<property name="java.compile.target" value="1.7"/>
+
+<property name="java.compile.source" value="1.7"/>
+
+<property name="javadoc.dir" location="/opt/IBM/HTTPServer2/htdocs/releases/${release}/javadocs"/>
+
+<property name="buildinfo.dir" location="/opt/IBM/HTTPServer2/htdocs/releases/${release}/buildinfo"/>
+
+<property name="fdx.cvs.packagelist" value="fdxLib fdUtil AFixOrderProcessor AFixTestMessageProcessor fdOrderVerifyCompliance APartialAllocationProcess fdAppClients fdBenchMarksClient fdBillingClients fdBlendUpdate fdBrk fdBulkAllocationProcess fdClients fdDynamicModelClient fdEJB fdHouseholdClients fdOrderExpirationProcess fdPendingTransactionPerformance fdPerformanceAccrual fdPerformanceClient fdPeriodicFundTransfers fdLPLPreTrade fdPershingBulkOrder fdPershingCrossTrading fdPershingOrderProcessing fdProcessFixMessages fdQuote fdRebalanceScheduler fdScriptsCda fdSecurityAllocationModelFileUploader fdSlvBalAdjustment fdTaxLotsAppClient fdTradeExceptionSweeper fdTransactionAllocationProcess fdUser fdWashSaleProcess fdWeb wsWeb FDwsWeb fdxsso fdSSO MFOrderSweeper perOrdersPollEngine BustOrderProcessor fixAllocationEngine fdBroadridgeWS CustodianOrderProcessor fdDbProcedures"/>
+
+
+-<taskdef resource="net/sf/antcontrib/antcontrib.properties">
+
+
+-<classpath>
+
+<pathelement location="/home/wasadmin/bin/ant-contrib-1.0b3.jar"/>
+
+</classpath>
+
+</taskdef>
+
+
+-<tstamp>
+
+<format pattern="MM/dd/yyyy hh:mm aa" property="build.time"/>
+
+</tstamp>
+
+<mkdir dir="${source.dir}/fdWeb"/>
+
+<mkdir dir="${source.dir}/fdWeb/WebContent"/>
+
+<property name="release.properties.file" location="${source.dir}/fdWeb/WebContent/buildinfo.properties"/>
+
+<property name="release.patch.level" value="0.1"/>
+
+<echo>Build Number: ${build.number}</echo>
+
+<echo>Build Time: ${build.time}</echo>
+
+<property name="log.file" location="${release.home}/logs/fdxBuild_${build.number}_.log"/>
+
+<echo>Logging to: ${log.file}</echo>
+
+<record name="${log.file}"/>
+
+<!-- Update or check out required sources from CVS for the fdx -->
+
+
+
+-<path description="Class path for compiling web project codes" id="fdxbuild.class.path">
+
+
+-<fileset dir="${source.dir}/fdBrk/">
+
+<include name="**/*.jar"/>
+
+<include name="**/*.zip"/>
+
+</fileset>
+
+<pathelement path="${work.dir}/fdUtil"/>
+
+
+-<fileset dir="${wasHome.dir}/lib/">
+
+<include name="**/*.jar"/>
+
+<include name="**/*.zip"/>
+
+<include name="**/*.rar"/>
+
+</fileset>
+
+
+-<fileset dir="${wasHome.dir}/installedConnectors/wmq.jmsra.rar">
+
+<include name="dhbcore.jar"/>
+
+<include name="com.ibm.mq.jar"/>
+
+<include name="com.ibm.mqjms.jar"/>
+
+</fileset>
+
+
+-<fileset dir="${build.dir}">
+
+<include name="**/*.*"/>
+
+</fileset>
+
+
+-<fileset dir="${work.dir}">
+
+<include name="**/*.jar"/>
+
+</fileset>
+
+
+-<dirset dir="${work.dir}">
+
+<include name="**/*"/>
+
+</dirset>
+
+
+-<fileset dir="${source.dir}/fdxsso/WebContent/WEB-INF/lib">
+
+<include name="**/*.*"/>
+
+</fileset>
+
+
+-<fileset dir="${source.dir}/wsWeb/WebContent/WEB-INF/lib">
+
+<include name="**/*.*"/>
+
+</fileset>
+
+
+-<fileset dir="${source.dir}/fdSSO/WebContent/WEB-INF/lib">
+
+<include name="**/*.*"/>
+
+</fileset>
+
+
+-<fileset dir="${external.lib.dir}">
+
+<include name="**/*.jar"/>
+
+<include name="**/*.zip"/>
+
+</fileset>
+
+
+-<fileset dir="${source.dir}/fdxLib">
+
+<include name="**/*.jar"/>
+
+</fileset>
+
+</path>
+
+
+-<path description="Class path for compiling web project codes" id="javadoc.class.path">
+
+
+-<fileset dir="${external.lib.dir}/websphere/plugins/">
+
+<include name="**/*.*"/>
+
+</fileset>
+
+
+-<fileset dir="/opt/IBM/WebSphere/AppServer/java/jre/lib">
+
+<include name="rt.jar"/>
+
+</fileset>
+
+</path>
+
+
+-<path description="Class path for compiling web project codes" id="build.class.path">
+
+
+-<fileset dir="${wasHome.dir}/plugins/">
+
+<include name="**/*.jar"/>
+
+</fileset>
+
+</path>
+
+
+-<target name="cvsCheckout" description="Check out all required sources from CVS" depends="fdxSourceCheckoutB,fdxWebCheckout">
+
+<property name="release.cvs.command" value="checkout"/>
+
+</target>
+
+
+-<target name="fdxSourceCheckout" unless="isPatch" description="Update or check out required sources from CVS - Stub">
+
+<echo message="Turn on fdxSourceCheckoutB for CVS"/>
+
+</target>
+
+
+-<target name="fdxSourceCheckoutB" unless="isPatch" description="Update or check out required sources from CVS" depends="init">
+
+<echo message="Checking out --${release.cvs.command}-- to --${source.dir}-- the required Fdx sources from CVS"/>
+
+<cvs package="${fdx.cvs.packagelist}" failOnError="true" compression="true" tag="${release.cvs.tag}" dest="${source.dir}" command="${release.cvs.command}" cvsroot="${cvsroot}"/>
+
+</target>
+
+
+-<target name="fdxWebCheckout" unless="isPatch" description="Update or check out required sources from CVS">
+
+<echo message="Checking out the required Fdx sources from CVS"/>
+
+<cvs package="fdStatic" compression="true" tag="${release.cvs.tag}" dest="${source.dir}" command="${release.cvs.command}" cvsroot="${cvsroot}"/>
+
+</target>
+
+<target name="fdxPatchCheckout" description="Patch check out CVS" depends="fdxSourcePatchCheckout,fdxWebPatchCheckout" if="isPatch"/>
+
+
+-<target name="fdxSourcePatchCheckout" description="Patch Source check out CVS" if="isPatch">
+
+<echo message="Checking out --${release.cvs.command}-- to --${source.dir}-- the required Fdx sources from CVS for patch"/>
+
+<cvs package="${fdx.cvs.packagelist}" tag="${release.cvs.tag}" dest="${source.dir}" command="export" cvsroot="${cvsroot}"/>
+
+</target>
+
+
+-<target name="fdxWebPatchCheckout" description="Check out patch sources from CVS" if="isPatch">
+
+<echo message="Checking out the required Fdx sources from CVS for patch"/>
+
+<cvs package="fdStatic" tag="${release.cvs.tag}" dest="${source.dir}" command="export" cvsroot="${cvsroot}"/>
+
+</target>
+
+<target name="clean" description="Clean Project" depends="cleanAll,cleanPatch"/>
+
+
+-<target name="cleanAll" unless="isPatch" description="Clean Project" depends="cleanPatch">
+
+<delete dir="${build.dir}"/>
+
+<delete dir="${work.dir}"/>
+
+<delete dir="${source.dir}"/>
+
+</target>
+
+
+-<target name="cleanPatch" description="Clean Project for patch" if="isPatch">
+
+<delete dir="${build.dir}"/>
+
+<delete dir="${work.dir}"/>
+
+</target>
+
+
++<target name="init" description="Initialize Project Build" depends="clean">
+
+
++<target name="brandRelease" description="Build the release branding tag">
+
+
++<target name="javadoc" unless="isPatch" description="generate documentation">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-<target name="createAppConfigs" description="create app-configs" depends="fdxSourceCheckoutB">
+
+<zip includes="*.*,fdx/brokerage/fdxLib/**/*,deploy/**/*" basedir="${source.dir}/fdScriptsCda/fdx/config/common" destfile="${build.dir}/fdAppConfigs.zip"/>
+
+</target>
+
+
++<target name="createInterfaceConfigs" description="create app-configs" depends="fdxSourceCheckoutB">
+
+
++<target name="createDbProcedures" description="create db-procedures" depends="fdxSourceCheckoutB">
+
+
+
+
+
+
+
+
+
+
+
+
+
++<target name="spxmi2sql">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
++<target name="validatePortalChgs" description="Check any Portal file changes">
+
+
++<target name="sencha">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
++<target name="senchatheme" depends="sencha">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
++<target name="addBuildVersionToCSSImportsProd">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
++<target name="addBuildVersionToCSSImportsTest">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
++<target name="createWeb" description="create web project" depends="fdxWebCheckout,sencha,senchatheme,addBuildVersionToCSSImportsProd,addBuildVersionToCSSImportsTest">
+
+
+
+
+
+
+
+
+
+
+
+
++<target name="createTemplateZip" description="create template zip project" depends="fdxWebCheckout">
+
+
++<target name="compileAll" description="Compiles web project codes" depends="cvsCheckout,brandRelease">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
++<target name="compileAndJarfdWeb">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
++<target name="compileAndJarwsWeb">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-<target name="compileAndJarFDwsWeb">
+
+<echo> Building Begin Project -- FDwsWeb </echo>
+
+
++<javac destdir="${work.dir}/FDwsWeb/WEB-INF/classes" encoding="iso-8859-1" includes="**/*.java" nowarn="true" srcdir="${source.dir}/FDwsWeb" includeantruntime="false" debug="true">
+
+
+-<copy todir="${work.dir}/FDwsWeb/">
+
+
+-<fileset dir="${source.dir}/FDwsWeb">
+
+<include name=".*"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/FDwsWeb/WEB-INF">
+
+
+-<fileset dir="${source.dir}/FDwsWeb/WebContent/WEB-INF/">
+
+<include name="*.xml"/>
+
+<include name="*.xmi"/>
+
+<include name="*.jar"/>
+
+<include name="*.tld"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/FDwsWeb/WEB-INF/properties">
+
+
+-<fileset dir="${source.dir}/FDwsWeb/WebContent/WEB-INF/properties">
+
+<include name="*.properties"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/FDwsWeb/WEB-INF/jsp">
+
+
+-<fileset dir="${source.dir}/FDwsWeb/WebContent/WEB-INF/jsp">
+
+<include name="*.jsp"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/FDwsWeb/WEB-INF/lib">
+
+
+-<fileset dir="${source.dir}/FDwsWeb/WebContent/WEB-INF/lib">
+
+<include name="*.jar"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/FDwsWeb/WEB-INF/wsdl">
+
+
+-<fileset dir="${source.dir}/FDwsWeb/WebContent/WEB-INF/wsdl">
+
+<include name="*.wsdl"/>
+
+</fileset>
+
+</copy>
+
+<jar basedir="${work.dir}/FDwsWeb" excludes="**/*.java" manifest="${source.dir}/FDwsWeb/WebContent/META-INF/MANIFEST.MF" jarfile="${build.dir}/FDwsWeb.war"/>
+
+<echo> Building finish Project -- FDwsWeb </echo>
+
+</target>
+
+
+-<target name="compileAndJarfdxsso">
+
+<echo> Building Begin Project -- fdxsso </echo>
+
+
+-<javac destdir="${work.dir}/fdxsso/WEB-INF/classes" encoding="iso-8859-1" includes="**/*.java" nowarn="false" srcdir="${source.dir}/fdxsso" includeantruntime="false" debug="true">
+
+<classpath refid="fdxbuild.class.path"/>
+
+<classpath refid="build.class.path"/>
+
+<compilerarg value="-XDignore.symbol.file"/>
+
+</javac>
+
+
+-<copy todir="${work.dir}/fdxsso/">
+
+
+-<fileset dir="${source.dir}/fdxsso">
+
+<include name=".*"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdxsso/">
+
+
+-<fileset dir="${source.dir}/fdxsso/WebContent">
+
+<include name="*.jsp"/>
+
+<include name="*.gif"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdxsso/WEB-INF/src">
+
+
+-<fileset dir="${source.dir}/fdxsso/WebContent/WEB-INF/src/">
+
+<include name="*.properties"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdxsso/WEB-INF/classes">
+
+
+-<fileset dir="${source.dir}/fdxsso/WebContent/WEB-INF/src/">
+
+<include name="*.properties"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdxsso/saml2">
+
+<fileset dir="${source.dir}/fdxsso/WebContent/saml2/"> </fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdxsso/CFRResources/Scripts/Fsi">
+
+
+-<fileset dir="${source.dir}/fdxsso/WebContent/CFRResources/Scripts/Fsi">
+
+<include name="*.js"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdxsso/WEB-INF/lib">
+
+
+-<fileset dir="${source.dir}/fdxsso/WebContent/WEB-INF/lib">
+
+<include name="*.jar"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdxsso/WEB-INF">
+
+
+-<fileset dir="${source.dir}/fdxsso/WebContent/WEB-INF">
+
+<include name="*.xml"/>
+
+<include name="*.xmi"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdxsso/WEB-INF/properties">
+
+
+-<fileset dir="${source.dir}/fdxsso/WebContent/WEB-INF/properties">
+
+<include name="*.*"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdxsso/WEB-INF/jsp">
+
+
+-<fileset dir="${source.dir}/fdxsso/WebContent/WEB-INF/jsp">
+
+<include name="*.jsp"/>
+
+</fileset>
+
+</copy>
+
+<jar basedir="${work.dir}/fdxsso" excludes="**/*.java" manifest="${source.dir}/fdxsso/WebContent/META-INF/MANIFEST.MF" jarfile="${build.dir}/fdxsso.war"/>
+
+<echo> Building finish Project -- fdxsso </echo>
+
+</target>
+
+
+-<target name="compileAndJarfdSSO">
+
+<echo> Building Begin Project -- fdSSO </echo>
+
+
+-<javac destdir="${work.dir}/fdSSO/WEB-INF/classes" encoding="iso-8859-1" includes="**/*.java" nowarn="false" srcdir="${source.dir}/fdSSO" includeantruntime="false" debug="true">
+
+<classpath refid="fdxbuild.class.path"/>
+
+<classpath refid="build.class.path"/>
+
+<compilerarg value="-XDignore.symbol.file"/>
+
+</javac>
+
+
+-<copy todir="${work.dir}/fdSSO/">
+
+
+-<fileset dir="${source.dir}/fdSSO">
+
+<include name=".*"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdSSO/">
+
+
+-<fileset dir="${source.dir}/fdSSO/WebContent">
+
+<include name="*.jsp"/>
+
+<include name="*.gif"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdSSO/WEB-INF/src">
+
+
+-<fileset dir="${source.dir}/fdSSO/src.properties/">
+
+<include name="*.properties"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdSSO/WEB-INF/classes">
+
+
+-<fileset dir="${source.dir}/fdSSO/src.properties/">
+
+<include name="*.properties"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdSSO/saml2">
+
+<fileset dir="${source.dir}/fdSSO/WebContent/saml2/"> </fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdSSO/CFRResources/Scripts/Fsi">
+
+
+-<fileset dir="${source.dir}/fdSSO/WebContent/CFRResources/Scripts/Fsi">
+
+<include name="*.js"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdSSO/WEB-INF/lib">
+
+
+-<fileset dir="${source.dir}/fdSSO/WebContent/WEB-INF/lib">
+
+<include name="*.jar"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdSSO/WEB-INF">
+
+
+-<fileset dir="${source.dir}/fdSSO/WebContent/WEB-INF">
+
+<include name="*.xml"/>
+
+<include name="*.xmi"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdSSO/WEB-INF/properties">
+
+
+-<fileset dir="${source.dir}/fdSSO/WebContent/WEB-INF/properties">
+
+<include name="*.*"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/fdSSO/WEB-INF/jsp">
+
+
+-<fileset dir="${source.dir}/fdSSO/WebContent/WEB-INF/jsp">
+
+<include name="*.jsp"/>
+
+</fileset>
+
+</copy>
+
+<jar basedir="${work.dir}/fdSSO" excludes="**/*.java" manifest="${source.dir}/fdSSO/WebContent/META-INF/MANIFEST.MF" jarfile="${build.dir}/fdSSO.war"/>
+
+<echo> Building finish Project -- fdSSO </echo>
+
+</target>
+
+
+-<target name="createWars" description="create wars using ant" depends="compileAll">
+
+<zip basedir="${source.dir}/fdxLib" destfile="${build.dir}/fdxLib.zip"/>
+
+</target>
+
+
+-<target name="createEar" description="Create ear file" depends="createWars">
+
+<echo>Building the ear file</echo>
+
+
+-<ear destfile="${build.dir}/fdBrk1.ear" update="true" appxml="${source.dir}/fdBrk/META-INF/application.xml">
+
+<fileset dir="${source.dir}/fdBrk" includes=".*,*.jar,*.war,*.zip,**/*.xmi,**/*.xml"/>
+
+<fileset dir="${build.dir}" includes="*.jar,*.war,*.zip" excludes="fdStatic.zip,fdxLib.zip,fdAppConfigs.zip"/>
+
+</ear>
+
+</target>
+
+<target name="build-all" description="Build enitre project" depends="init,createEar,createDB,createWeb,createTemplateZip,createAppConfigs,createInterfaceConfigs,createDbProcedures,createBatchScripts,createBatchConfig,buildJSP"/>
+
+
+-<target name="createDB" description="Create DB" depends="">
+
+<echo>Building Database Object - STUB - TBD</echo>
+
+</target>
+
+
+-<target name="createBatchScripts" description="Create Batch Scripts" depends="">
+
+<echo>Building Batch Scripts Object - STUB - TBD</echo>
+
+</target>
+
+
+-<target name="createBatchConfig" description="Create Batch Config" depends="">
+
+<echo>Building Batch Config Object - STUB - TBD</echo>
+
+</target>
+
+
+-<target name="buildJSP" description="Build JSP" depends="">
+
+<echo>Building JSP Object - STUB - TBD</echo>
+
+</target>
+
+
+-<target name="JavaProjectCompileAndJar">
+
+<echo> Building Begin Project -- ${JavaProjectName} </echo>
+
+
+-<javac destdir="${work.dir}/${JavaProjectName}" encoding="iso-8859-1" includes="**/*.java" nowarn="true" srcdir="${source.dir}/${JavaProjectName}" includeantruntime="false" debug="true">
+
+<classpath refid="fdxbuild.class.path"/>
+
+<classpath refid="build.class.path"/>
+
+<compilerarg value="-XDignore.symbol.file"/>
+
+</javac>
+
+<jar basedir="${work.dir}/${JavaProjectName}" excludes="**/*.java" manifest="${source.dir}/${JavaProjectName}/META-INF/MANIFEST.MF" jarfile="${build.dir}/${JavaProjectName}.jar"/>
+
+<echo> Building finish Project -- ${JavaProjectName} </echo>
+
+</target>
+
+
+-<target name="JavaProjectCompileAndJarMetaInfUnderSRC">
+
+<echo> Building Begin Project -- ${JavaProjectName} </echo>
+
+
+-<javac destdir="${work.dir}/${JavaProjectName}" encoding="iso-8859-1" includes="**/*.java" nowarn="true" srcdir="${source.dir}/${JavaProjectName}" includeantruntime="false" debug="true">
+
+<classpath refid="fdxbuild.class.path"/>
+
+<classpath refid="build.class.path"/>
+
+<compilerarg value="-XDignore.symbol.file"/>
+
+</javac>
+
+<jar basedir="${work.dir}/${JavaProjectName}" excludes="**/*.java" manifest="${source.dir}/${JavaProjectName}/src/META-INF/MANIFEST.MF" jarfile="${build.dir}/${JavaProjectName}.jar"/>
+
+<echo> Building finish Project -- ${JavaProjectName} </echo>
+
+</target>
+
+
+-<target name="EJBProjectCompileAndJar">
+
+<echo> Building Begin Project -- ${EJBProjectName} </echo>
+
+
+-<javac destdir="${work.dir}/${EJBProjectName}" encoding="iso-8859-1" includes="**/*.java" nowarn="true" srcdir="${source.dir}/${EJBProjectName}" includeantruntime="false" debug="true">
+
+<classpath refid="fdxbuild.class.path"/>
+
+<classpath refid="build.class.path"/>
+
+<compilerarg value="-XDignore.symbol.file"/>
+
+</javac>
+
+
+-<copy todir="${work.dir}/${EJBProjectName}/">
+
+
+-<fileset dir="${source.dir}/${EJBProjectName}">
+
+<include name=".*"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/${EJBProjectName}/META-INF">
+
+<fileset dir="${source.dir}/${EJBProjectName}/ejbModule/META-INF"/>
+
+</copy>
+
+
+-<copy todir="${work.dir}/${EJBProjectName}/META-INF">
+
+<fileset dir="${source.dir}/${EJBProjectName}/META-INF"/>
+
+</copy>
+
+<jar basedir="${work.dir}/${EJBProjectName}/" excludes="**/*.java" manifest="${source.dir}/${EJBProjectName}/ejbModule/META-INF/MANIFEST.MF" jarfile="${build.dir}/${EJBProjectName}.jar"/>
+
+<echo> Building finish Project -- ${EJBProjectName} </echo>
+
+</target>
+
+
+-<target name="AppClientProjectCompileAndJar">
+
+<echo> Building Begin Project -- ${AppClientProjectName} </echo>
+
+
+-<javac destdir="${work.dir}/${AppClientProjectName}" encoding="iso-8859-1" includes="**/*.java" nowarn="true" srcdir="${source.dir}/${AppClientProjectName}" includeantruntime="false" debug="true">
+
+<classpath refid="fdxbuild.class.path"/>
+
+<compilerarg value="-XDignore.symbol.file"/>
+
+</javac>
+
+
+-<copy todir="${work.dir}/${AppClientProjectName}/">
+
+
+-<fileset dir="${source.dir}/${AppClientProjectName}">
+
+<include name=".*"/>
+
+</fileset>
+
+</copy>
+
+
+-<copy todir="${work.dir}/${AppClientProjectName}/META-INF/">
+
+
+-<fileset dir="${source.dir}/${AppClientProjectName}/appClientModule/META-INF/">
+
+<include name="*.*"/>
+
+</fileset>
+
+</copy>
+
+<jar basedir="${work.dir}/${AppClientProjectName}" excludes="**/*.java" manifest="${source.dir}/${AppClientProjectName}/appClientModule/META-INF/MANIFEST.MF" jarfile="${build.dir}/${AppClientProjectName}.jar"/>
+
+<echo> Building finish Project -- ${AppClientProjectName} </echo>
+
+</target>
+
+
+-<target name="sendMail" description="send email using ant" depends="createWeb">
+
+
+-<mail subject="${ant.project.name} build status" mailport="25" mailhost="10.20.100.52">
+
+<from address="mark.davis@FolioDx.com"/>
+
+<to address="mark.davis@FolioDx.com"/>
+
+<message>The ${ant.project.name} build ${build.number} has completed</message>
+
+
+-<attachments>
+
+
+-<fileset dir="./">
+
+<include name="build.xml"/>
+
+</fileset>
+
+<fileset file="${log.file}"/>
+
+</attachments>
+
+</mail>
+
+</target>
+
+
+-<target name="test">
+
+<echo>Test Build Release Dir: ${release.home}</echo>
+
+<echo>Test Build Release Num: ${release}</echo>
+
+<echo>Test Build Release Time: ${build.time}</echo>
+
+</target>
+
+</project>
